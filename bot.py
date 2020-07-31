@@ -1,7 +1,9 @@
+# - *- coding: utf- 8 - *-
 import MySQLdb
 import telebot
 import random
 import constants
+
 bot=telebot.TeleBot(constants.token)
 
 conn = MySQLdb.connect('localhost', 'root', '', 'chat_bot',charset='utf8')
@@ -32,7 +34,7 @@ def search_message(message):
     cursor = conn.cursor()
     cursor.execute("SELECT status FROM users WHERE user_id={}".format(message.chat.id))
     row = cursor.fetchone()
-    if row[0]==8:
+    if row!=None and row[0]==8:
         bot.send_message(message.chat.id, 'Ожидайте собеседника...')
         request="SELECT users.user_id FROM users, search WHERE"
         cursor = conn.cursor()
@@ -83,7 +85,7 @@ def next_message(message):
     cursor = conn.cursor()
     cursor.execute('SELECT companion FROM users WHERE user_id={}'.format(message.chat.id))
     row = cursor.fetchone()
-    if row[0]!=None:
+    if row!=None and row[0]!=None:
         id=row[0]
         cursor.execute("UPDATE users SET searching=NULL, companion=NULL WHERE user_id={}".format(message.chat.id))
         cursor.execute("UPDATE users SET searching=NULL, companion=NULL WHERE user_id={}".format(id))
@@ -98,18 +100,45 @@ def stop_message(message):
     cursor = conn.cursor()
     cursor.execute('SELECT companion FROM users WHERE user_id={}'.format(message.chat.id))
     row = cursor.fetchone()
-    id=row[0]
     cursor.execute("UPDATE users SET searching=NULL, companion=NULL WHERE user_id={}".format(message.chat.id))
-    cursor.execute("UPDATE users SET searching=NULL, companion=NULL WHERE user_id={}".format(id))
     bot.send_message(message.chat.id, 'Для поиска используйте /search')
-    bot.send_message(id, 'Собеседник остановил диалог... Для поиска используйте /search')
+    if row!=None and row[0] != None:
+        id=row[0]
+        cursor.execute("UPDATE users SET searching=NULL, companion=NULL WHERE user_id={}".format(id))
+        bot.send_message(id, 'Собеседник остановил диалог... Для поиска используйте /search')
 
+@bot.message_handler(commands=['update_info'])
+def next_message(message):
+    cursor = conn.cursor()
+    cursor.execute("SELECT user_id FROM users WHERE user_id={}".format(message.chat.id))
+    row = cursor.fetchone()
+    if row!=None:
+        cursor.execute("UPDATE users SET status=0 WHERE user_id={}".format(message.chat.id))
+        bot.send_message(message.chat.id, 'Привет, как мне тебя называть?')
+
+@bot.message_handler(commands=['update_target'])
+def next_message(message):
+    cursor = conn.cursor()
+    cursor.execute("SELECT user_id FROM search WHERE user_id={}".format(message.chat.id))
+    row = cursor.fetchone()
+    if row!=None:
+        cursor.execute("UPDATE users SET status=4 WHERE user_id={}".format(message.chat.id))
+        bot.send_message(message.chat.id, 'Теперь разбеёмсся кого вы ищете!', reply_markup=keyboard2)
+
+@bot.message_handler(commands=['delete_anket'])
+def next_message(message):
+    cursor = conn.cursor()
+    cursor.execute("DELETE FROM search WHERE user_id={}".format(message.chat.id))
+    cursor.execute("DELETE FROM users WHERE user_id={}".format(message.chat.id))
+    bot.send_message(message.chat.id, 'Чтобы венуться к нам нажмите /start')
 
 @bot.message_handler(content_types=['text'])
 def send_text(message):
     cursor = conn.cursor()
     cursor.execute("SELECT status FROM users WHERE user_id={}".format(message.chat.id))
     status = cursor.fetchone()
+    if status==None:
+        return
     if status[0]==0:
         cursor.execute('UPDATE users SET user_name="{}", status=status+1 WHERE user_id={}'.format(message.text ,message.chat.id))
         bot.send_message(message.chat.id, 'Сколько тебе лет?')
@@ -180,6 +209,6 @@ def send_text(message):
         row=cursor.fetchone()
         bot.send_message(row[0], message.text)
 
-bot.polling()
+bot.polling(none_stop=True)
 conn.close()
 
