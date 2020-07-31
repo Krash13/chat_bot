@@ -207,8 +207,23 @@ def send_text(message):
     elif status[0] == 8:
         cursor.execute('SELECT companion FROM users WHERE user_id={}'.format(message.chat.id))
         row=cursor.fetchone()
-        bot.send_message(row[0], message.text)
+        if row[0]!=None:
+            bot.send_message(row[0], message.text)
 
+@bot.message_handler(content_types=['photo'])
+def send_text(message):
+    cursor = conn.cursor()
+    cursor.execute("SELECT status FROM users WHERE user_id={}".format(message.chat.id))
+    status = cursor.fetchone()
+    if status == None:
+        return
+    if status[0] == 8:
+        cursor.execute('SELECT companion FROM users WHERE user_id={}'.format(message.chat.id))
+        row=cursor.fetchone()
+        if row[0]!=None:
+            file_info = bot.get_file(message.photo[len(message.photo) - 1].file_id)
+            downloaded_file = bot.download_file(file_info.file_path)
+            bot.send_photo(row[0], downloaded_file, message.caption)
 bot.polling(none_stop=True)
 conn.close()
 
