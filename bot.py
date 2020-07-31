@@ -77,11 +77,15 @@ def next_message(message):
     cursor = conn.cursor()
     cursor.execute('SELECT companion FROM users WHERE user_id={}'.format(message.chat.id))
     row = cursor.fetchone()
-    id=row[0]
-    cursor.execute("UPDATE users SET searching=NULL, companion=NULL WHERE user_id={}".format(message.chat.id))
-    cursor.execute("UPDATE users SET searching=NULL, companion=NULL WHERE user_id={}".format(id))
-    bot.send_message(id, 'Собеседник остановил диалог... Для поиска используйте /search')
-    search_message(message)
+    if row!=None:
+        id=row[0]
+        if id==None:
+            search_message(message)
+            return
+        cursor.execute("UPDATE users SET searching=NULL, companion=NULL WHERE user_id={}".format(message.chat.id))
+        cursor.execute("UPDATE users SET searching=NULL, companion=NULL WHERE user_id={}".format(id))
+        bot.send_message(id, 'Собеседник остановил диалог... Для поиска используйте /search')
+        search_message(message)
 
 
 @bot.message_handler(commands=['stop'])
@@ -118,7 +122,15 @@ def send_text(message):
             bot.send_message(message.chat.id, 'Кто ты?', reply_markup=keyboard1)
     elif status[0] == 3:
         cursor.execute('UPDATE users SET city="{}", status=status+1 WHERE user_id={}'.format(message.text, message.chat.id))
-        bot.send_message(message.chat.id, 'Теперь разбеёмсся кого вы ищете!',reply_markup=keyboard2)
+        #bot.send_message(message.chat.id, 'Теперь разбеёмсся кого вы ищете!',reply_markup=keyboard2)
+        cursor.execute("SELECT user_id FROM search WHERE user_id={}".format(message.chat.id))
+        print("SELECT user_id FROM search WHERE user_id={}".format(message.chat.id))
+        row = cursor.fetchone()
+        if row != None:
+            cursor.execute('UPDATE users SET status=8 WHERE user_id={}'.format(message.chat.id))
+            bot.send_message(message.chat.id, 'Отлично, можно начинать! Для поиска введите /search',reply_markup=remkeyb)
+        else:
+            bot.send_message(message.chat.id, 'Теперь разбеёмсся кого вы ищете!', reply_markup=keyboard2)
     elif status[0] == 4:
         if message.text in ('М', 'Ж', "Всё равно"):
             cursor = conn.cursor()
