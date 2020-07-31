@@ -29,63 +29,68 @@ def start_message(message):
 
 @bot.message_handler(commands=['search'])
 def search_message(message):
-    bot.send_message(message.chat.id, 'Ожидайте собеседника...')
-    request="SELECT users.user_id FROM users, search WHERE"
     cursor = conn.cursor()
-    cursor.execute("UPDATE users SET searching=0 WHERE user_id={}".format(message.chat.id))
-    cursor.execute("SELECT * FROM search WHERE user_id={}".format(message.chat.id))
-    row1 = cursor.fetchone()
-    cursor.execute("SELECT * FROM users WHERE user_id={}".format(message.chat.id))
-    row2 = cursor.fetchone()
-    request+=" users.age>={} AND users.age<={}".format(row1[3],row1[4])
-    if row1[2]!=None:
-        request += " AND users.gender='{}'".format(row1[2])
-
-    if row1[5]!=None:
-        request += " AND users.city='{}'".format(row1[5])
-
-    if row1[6]!=None:
-        request += " AND search.target='{}'".format(row1[6])
-
-    request += " AND (search.gender='{}' OR search.gender IS NULL)".format(row2[2])
-    if row1[6]!=None:
-        request += " AND (search.target='{}' OR search.target IS NULL)".format(row1[6])
-    request += " AND (search.city='{}' OR search.city IS NULL)".format(row2[4])
-    request += " AND search.age_min<={} AND search.age_max>={}".format(row2[3],row2[3])
-    request+=" AND users.user_id<>{}".format(message.chat.id)
-    request += " AND users.searching=0"
-    request += " AND users.user_id=search.user_id"
-    print(request)
-    cursor.execute(request)
+    cursor.execute("SELECT status FROM users WHERE user_id={}".format(message.chat.id))
     row = cursor.fetchone()
-    print(row)
-    ids=[]
-    while row!=None:
-        ids.append(row[0])
-        row = cursor.fetchone()
+    if row[0]==8:
+        bot.send_message(message.chat.id, 'Ожидайте собеседника...')
+        request="SELECT users.user_id FROM users, search WHERE"
+        cursor = conn.cursor()
+        cursor.execute("UPDATE users SET searching=0 WHERE user_id={}".format(message.chat.id))
+        cursor.execute("SELECT * FROM search WHERE user_id={}".format(message.chat.id))
+        row1 = cursor.fetchone()
+        cursor.execute("SELECT * FROM users WHERE user_id={}".format(message.chat.id))
+        row2 = cursor.fetchone()
+        request+=" users.age>={} AND users.age<={}".format(row1[3],row1[4])
+        if row1[2]!=None:
+            request += " AND users.gender='{}'".format(row1[2])
 
-    if len(ids)>0:
-        index=random.randint(0,len(ids)-1)
-        id=ids[index]
-        cursor.execute("UPDATE users SET searching=1, companion={} WHERE user_id={}".format(id,message.chat.id))
-        cursor.execute("UPDATE users SET searching=1, companion={} WHERE user_id={}".format(message.chat.id,id))
-        bot.send_message(message.chat.id, 'Собеседник найден! \n /next - сменить собеседника \n /stop - остановить диалог')
-        bot.send_message(id, 'Собеседник найден! \n /next - сменить собеседника \n /stop - остановить диалог')
+        if row1[5]!=None:
+            request += " AND users.city='{}'".format(row1[5])
+
+        if row1[6]!=None:
+            request += " AND search.target='{}'".format(row1[6])
+
+        request += " AND (search.gender='{}' OR search.gender IS NULL)".format(row2[2])
+        if row1[6]!=None:
+            request += " AND (search.target='{}' OR search.target IS NULL)".format(row1[6])
+        request += " AND (search.city='{}' OR search.city IS NULL)".format(row2[4])
+        request += " AND search.age_min<={} AND search.age_max>={}".format(row2[3],row2[3])
+        request+=" AND users.user_id<>{}".format(message.chat.id)
+        request += " AND users.searching=0"
+        request += " AND users.user_id=search.user_id"
+        print(request)
+        cursor.execute(request)
+        row = cursor.fetchone()
+        print(row)
+        ids=[]
+        while row!=None:
+            ids.append(row[0])
+            row = cursor.fetchone()
+
+        if len(ids)>0:
+            index=random.randint(0,len(ids)-1)
+            id=ids[index]
+            cursor.execute("UPDATE users SET searching=1, companion={} WHERE user_id={}".format(id,message.chat.id))
+            cursor.execute("UPDATE users SET searching=1, companion={} WHERE user_id={}".format(message.chat.id,id))
+            bot.send_message(message.chat.id, 'Собеседник найден! \n /next - сменить собеседника \n /stop - остановить диалог')
+            bot.send_message(id, 'Собеседник найден! \n /next - сменить собеседника \n /stop - остановить диалог')
+    else:
+        bot.send_message(message.chat.id,'Ваша анкета ещё не заполнена!')
 
 @bot.message_handler(commands=['next'])
 def next_message(message):
     cursor = conn.cursor()
     cursor.execute('SELECT companion FROM users WHERE user_id={}'.format(message.chat.id))
     row = cursor.fetchone()
-    if row!=None:
+    if row[0]!=None:
         id=row[0]
-        if id==None:
-            search_message(message)
-            return
         cursor.execute("UPDATE users SET searching=NULL, companion=NULL WHERE user_id={}".format(message.chat.id))
         cursor.execute("UPDATE users SET searching=NULL, companion=NULL WHERE user_id={}".format(id))
         bot.send_message(id, 'Собеседник остановил диалог... Для поиска используйте /search')
         search_message(message)
+    else:
+        bot.send_message(message.chat.id, 'Нажмите /search для поиска')
 
 
 @bot.message_handler(commands=['stop'])
