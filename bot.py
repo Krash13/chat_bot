@@ -128,7 +128,7 @@ def next_message(message):
     cursor.execute("SELECT user_id FROM users WHERE user_id={}".format(message.chat.id))
     row = cursor.fetchone()
     if row!=None:
-        cursor.execute("UPDATE users SET status=0 WHERE user_id={}".format(message.chat.id))
+        cursor.execute("UPDATE users SET status=0, searching=NULL WHERE user_id={}".format(message.chat.id))
         bot.send_message(message.chat.id, 'Привет, как мне тебя называть?')
     conn.close()
 
@@ -139,7 +139,7 @@ def next_message(message):
     cursor.execute("SELECT user_id FROM search WHERE user_id={}".format(message.chat.id))
     row = cursor.fetchone()
     if row!=None:
-        cursor.execute("UPDATE users SET status=4 WHERE user_id={}".format(message.chat.id))
+        cursor.execute("UPDATE users SET status=4, searching=NULL WHERE user_id={}".format(message.chat.id))
         bot.send_message(message.chat.id, 'Теперь разбеёмсся кого вы ищете!', reply_markup=keyboard2)
     conn.close()
 
