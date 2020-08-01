@@ -2,6 +2,7 @@
 import MySQLdb
 import telebot
 import random
+from geopy.geocoders import Nominatim
 import constants
 
 bot=telebot.TeleBot(constants.token)
@@ -17,6 +18,10 @@ keyboard3.row('16-18', '18-23','23-30').add('30-40','40-55','55+')
 keyboard3.add('Всё равно')
 keyboard4.row('Общение', 'Дружба').add('Отношения','Секс')
 keyboard4.add('Всё равно')
+
+keyboard_geo = telebot.types.ReplyKeyboardMarkup(row_width=1, resize_keyboard=True)
+button_geo = telebot.types.KeyboardButton(text="Отправить местоположение", request_location=True)
+keyboard_geo.add(button_geo)
 
 @bot.message_handler(commands=['start'])
 def start_message(message):
@@ -158,7 +163,7 @@ def send_text(message):
         cursor.execute('UPDATE users SET user_name="{}", status=status+1 WHERE user_id={}'.format(message.text ,message.chat.id))
         bot.send_message(message.chat.id, 'Сколько тебе лет?')
     elif status[0] == 1:
-        if int(message.text)<99:
+        if message.text.isdigit() and int(message.text)<99:
             cursor.execute('UPDATE users SET age={}, status=status+1 WHERE user_id={}'.format(message.text ,message.chat.id))
             bot.send_message(message.chat.id, 'Кто ты?', reply_markup=keyboard1)
         else:
@@ -166,14 +171,14 @@ def send_text(message):
     elif status[0] == 2:
         if message.text in ('М', 'Ж'):
             cursor.execute('UPDATE users SET gender="{}", status=status+1 WHERE user_id={}'.format(message.text ,message.chat.id))
-            bot.send_message(message.chat.id, 'Из какого ты города?',reply_markup=remkeyb)
+            bot.send_message(message.chat.id, 'Из какого ты города? напиши или нажми кнопку.',reply_markup=keyboard_geo)
         else:
             bot.send_message(message.chat.id, 'Кто ты?', reply_markup=keyboard1)
     elif status[0] == 3:
         cursor.execute('UPDATE users SET city="{}", status=status+1 WHERE user_id={}'.format(message.text, message.chat.id))
         #bot.send_message(message.chat.id, 'Теперь разбеёмсся кого вы ищете!',reply_markup=keyboard2)
         cursor.execute("SELECT user_id FROM search WHERE user_id={}".format(message.chat.id))
-        print("SELECT user_id FROM search WHERE user_id={}".format(message.chat.id))
+        #print("SELECT user_id FROM search WHERE user_id={}".format(message.chat.id))
         row = cursor.fetchone()
         if row != None:
             cursor.execute('UPDATE users SET status=8 WHERE user_id={}'.format(message.chat.id))
@@ -242,6 +247,29 @@ def send_text(message):
             downloaded_file = bot.download_file(file_info.file_path)
             bot.send_photo(row[0], downloaded_file, message.caption)
     conn.close()
+
+@bot.message_handler(content_types=["location"])
+def location(message):
+    if message.location is not None:
+        conn = MySQLdb.connect(constants.host, constants.user, constants.passw, constants.db, charset='utf8')
+        cursor = conn.cursor()
+        cursor.execute("SELECT status FROM users WHERE user_id={}".format(message.chat.id))
+        status = cursor.fetchone()
+        if status == None:
+            conn.close()
+            return
+        elif status[0] == 3:
+            geolocator = Nominatim(user_agent="bisnesteleg12@gmail.com")
+            location = geolocator.reverse("{}, {}".format(message.location.latitude,message.location.longitude),language="ru")
+            cursor.execute('UPDATE users SET city="{}", status=status+1 WHERE user_id={}'.format(location.raw['address']['city'], message.chat.id))
+            cursor.execute("SELECT user_id FROM search WHERE user_id={}".format(message.chat.id))
+            row = cursor.fetchone()
+            if row != None:
+                cursor.execute('UPDATE users SET status=8 WHERE user_id={}'.format(message.chat.id))
+                bot.send_message(message.chat.id, 'Отлично, можно начинать! Для поиска введите /search',reply_markup=remkeyb)
+            else:
+                bot.send_message(message.chat.id, 'Теперь разбеёмсся кого вы ищете!', reply_markup=keyboard2)
+
 bot.polling(none_stop=True)
 conn.close()
 
