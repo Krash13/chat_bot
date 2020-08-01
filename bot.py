@@ -280,10 +280,20 @@ def location(message):
             else:
                 bot.send_message(message.chat.id, 'Теперь разбеёмсся кого вы ищете!', reply_markup=keyboard2)
 
-@bot.message_handler(content_types=["stiker"])
-def send_stiker(message):
-    print(message)
-    bot.send_sticker(message.chat.id,message.file_id)
+@bot.message_handler(content_types=["sticker"])
+def send_sticker(message):
+    conn = MySQLdb.connect(constants.host, constants.user, constants.passw, constants.db, charset='utf8')
+    cursor = conn.cursor()
+    cursor.execute("SELECT status FROM users WHERE user_id={}".format(message.chat.id))
+    status = cursor.fetchone()
+    if status == None:
+        conn.close()
+        return
+    elif status[0] == 8:
+        cursor.execute('SELECT companion FROM users WHERE user_id={}'.format(message.chat.id))
+        row = cursor.fetchone()
+        if row[0] != None:
+            bot.send_sticker(row[0],message.sticker.file_id)
 
 bot.polling(none_stop=True)
 conn.close()
