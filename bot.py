@@ -94,7 +94,9 @@ def next_message(message):
     cursor = conn.cursor()
     cursor.execute('SELECT companion FROM users WHERE user_id={}'.format(message.chat.id))
     row = cursor.fetchone()
-    if row!=None and row[0]!=None:
+    cursor.execute("SELECT status FROM users WHERE user_id={}".format(message.chat.id))
+    row1 = cursor.fetchone()
+    if row!=None and row[0]!=None and row1[0]==8:
         id=row[0]
         cursor.execute("UPDATE users SET searching=NULL, companion=NULL WHERE user_id={}".format(message.chat.id))
         cursor.execute("UPDATE users SET searching=NULL, companion=NULL WHERE user_id={}".format(id))
