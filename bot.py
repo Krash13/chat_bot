@@ -2,6 +2,7 @@
 import MySQLdb
 import telebot
 import random
+import requests
 from geopy.geocoders import Nominatim
 import constants
 
@@ -279,6 +280,7 @@ def location(message):
                 bot.send_message(message.chat.id, 'Отлично, можно начинать! Для поиска введите /search',reply_markup=remkeyb)
             else:
                 bot.send_message(message.chat.id, 'Теперь разбеёмсся кого вы ищете!', reply_markup=keyboard2)
+            conn.close()
 
 @bot.message_handler(content_types=["sticker"])
 def send_sticker(message):
@@ -294,6 +296,24 @@ def send_sticker(message):
         row = cursor.fetchone()
         if row[0] != None:
             bot.send_sticker(row[0],message.sticker.file_id)
+    conn.close()
+
+@bot.message_handler(content_types=["voice"])
+def send_audio(message):
+    conn = MySQLdb.connect(constants.host, constants.user, constants.passw, constants.db, charset='utf8')
+    cursor = conn.cursor()
+    cursor.execute("SELECT status FROM users WHERE user_id={}".format(message.chat.id))
+    status = cursor.fetchone()
+    if status == None:
+        return
+    if status[0] == 8:
+        cursor.execute('SELECT companion FROM users WHERE user_id={}'.format(message.chat.id))
+        row = cursor.fetchone()
+        if row[0] != None:
+            file_info = bot.get_file(message.voice.file_id)
+            file = requests.get('https://api.telegram.org/file/bot{0}/{1}'.format(constants.token, file_info.file_path))
+            bot.send_voice(row[0],file.content)
+    conn.close()
 
 bot.polling(none_stop=True)
 conn.close()
