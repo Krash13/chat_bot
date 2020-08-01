@@ -263,7 +263,15 @@ def location(message):
         elif status[0] == 3:
             geolocator = Nominatim(user_agent="bisnesteleg12@gmail.com")
             location = geolocator.reverse("{}, {}".format(message.location.latitude,message.location.longitude),language="ru")
-            cursor.execute('UPDATE users SET city="{}", status=status+1 WHERE user_id={}'.format(location.raw['address']['city'], message.chat.id))
+            if "city" in location.raw['address']:
+                loc=location.raw['address']['city']
+            elif "village" in location.raw['address']:
+                loc=location.raw['address']['village']
+            else:
+                bot.send_message(message.chat.id, 'Ваш город не найден введите текстом...',reply_markup=remkeyb)
+                conn.close()
+                return
+            cursor.execute('UPDATE users SET city="{}", status=status+1 WHERE user_id={}'.format(loc, message.chat.id))
             cursor.execute("SELECT user_id FROM search WHERE user_id={}".format(message.chat.id))
             row = cursor.fetchone()
             if row != None:
@@ -271,6 +279,11 @@ def location(message):
                 bot.send_message(message.chat.id, 'Отлично, можно начинать! Для поиска введите /search',reply_markup=remkeyb)
             else:
                 bot.send_message(message.chat.id, 'Теперь разбеёмсся кого вы ищете!', reply_markup=keyboard2)
+
+@bot.message_handler(content_types=["stiker"])
+def send_stiker(message):
+    print(message)
+    bot.send_sticker(message.chat.id,message.file_id)
 
 bot.polling(none_stop=True)
 conn.close()
