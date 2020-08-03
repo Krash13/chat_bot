@@ -24,6 +24,7 @@ keyboard_geo = telebot.types.ReplyKeyboardMarkup(row_width=1, resize_keyboard=Tr
 button_geo = telebot.types.KeyboardButton(text="Отправить местоположение", request_location=True)
 keyboard_geo.add(button_geo)
 
+
 @bot.message_handler(commands=['help'])
 def help_message(message):
     bot.send_message(message.chat.id, '/start - запуск бота\n/search - поиск собеседник\n/search_all - поиск без параметров\n/next - смена собеседника\n/stop - остановить поиск\n/update_info - обновить данные о себе\n/update_target - обновить критерии поиска\n/delete_anket - удалить анкету\n/help - помощь')
@@ -57,7 +58,14 @@ def search_all_message(message):
             cursor.execute("UPDATE users SET searching=1, companion={} WHERE user_id={}".format(id, message.chat.id))
             cursor.execute("UPDATE users SET searching=1, companion={} WHERE user_id={}".format(message.chat.id, id))
             bot.send_message(message.chat.id,'Собеседник найден! \n /stop - остановить диалог')
-            bot.send_message(id, 'Собеседник найден! \n /stop - остановить диалог')
+            try:
+                bot.send_message(id, 'Собеседник найден! \n /stop - остановить диалог')
+            except:
+                bot.send_message(message.chat.id, "Ваш собеседник заблокировал бота...\n Нажмите /search")
+                cursor = conn.cursor()
+                cursor.execute("DELETE FROM search WHERE user_id={}".format(id))
+                cursor.execute("DELETE FROM users WHERE user_id={}".format(id))
+                cursor.execute("UPDATE users SET searching=NULL, companion=NULL WHERE user_id={}".format(message.chat.id))
     else:
         bot.send_message(message.chat.id,'Ваша анкета ещё не заполнена!')
     conn.close()
@@ -110,7 +118,14 @@ def search_message(message):
             cursor.execute("UPDATE users SET searching=1, companion={} WHERE user_id={}".format(id,message.chat.id))
             cursor.execute("UPDATE users SET searching=1, companion={} WHERE user_id={}".format(message.chat.id,id))
             bot.send_message(message.chat.id, 'Собеседник найден! \n /next - сменить собеседника \n /stop - остановить диалог')
-            bot.send_message(id, 'Собеседник найден! \n /next - сменить собеседника \n /stop - остановить диалог')
+            try:
+                bot.send_message(id, 'Собеседник найден! \n /next - сменить собеседника \n /stop - остановить диалог')
+            except:
+                bot.send_message(message.chat.id, "Ваш собеседник заблокировал бота...\n Нажмите /search")
+                cursor = conn.cursor()
+                cursor.execute("DELETE FROM search WHERE user_id={}".format(id))
+                cursor.execute("DELETE FROM users WHERE user_id={}".format(id))
+                cursor.execute("UPDATE users SET searching=NULL, companion=NULL WHERE user_id={}".format(message.chat.id))
     else:
         bot.send_message(message.chat.id,'Ваша анкета ещё не заполнена!')
     conn.close()
@@ -258,7 +273,14 @@ def send_text(message):
         cursor.execute('SELECT companion FROM users WHERE user_id={}'.format(message.chat.id))
         row=cursor.fetchone()
         if row[0]!=None:
-            bot.send_message(row[0], message.text)
+            try:
+                bot.send_message(row[0], message.text)
+            except:
+                bot.send_message(message.chat.id, "Ваш собеседник заблокировал бота...\n Нажмите /search")
+                cursor = conn.cursor()
+                cursor.execute("DELETE FROM search WHERE user_id={}".format(row[0]))
+                cursor.execute("DELETE FROM users WHERE user_id={}".format(row[0]))
+                cursor.execute("UPDATE users SET searching=NULL, companion=NULL WHERE user_id={}".format(message.chat.id))
     conn.close()
 
 @bot.message_handler(content_types=['photo'])
@@ -273,9 +295,16 @@ def send_text(message):
         cursor.execute('SELECT companion FROM users WHERE user_id={}'.format(message.chat.id))
         row=cursor.fetchone()
         if row[0]!=None:
-            file_info = bot.get_file(message.photo[len(message.photo) - 1].file_id)
-            downloaded_file = bot.download_file(file_info.file_path)
-            bot.send_photo(row[0], downloaded_file, message.caption)
+            try:
+                file_info = bot.get_file(message.photo[len(message.photo) - 1].file_id)
+                downloaded_file = bot.download_file(file_info.file_path)
+                bot.send_photo(row[0], downloaded_file, message.caption)
+            except:
+                bot.send_message(message.chat.id, "Ваш собеседник заблокировал бота...\n Нажмите /search")
+                cursor = conn.cursor()
+                cursor.execute("DELETE FROM search WHERE user_id={}".format(row[0]))
+                cursor.execute("DELETE FROM users WHERE user_id={}".format(row[0]))
+                cursor.execute("UPDATE users SET searching=NULL, companion=NULL WHERE user_id={}".format(message.chat.id))
     conn.close()
 
 @bot.message_handler(content_types=["location"])
@@ -322,7 +351,14 @@ def send_sticker(message):
         cursor.execute('SELECT companion FROM users WHERE user_id={}'.format(message.chat.id))
         row = cursor.fetchone()
         if row[0] != None:
-            bot.send_sticker(row[0],message.sticker.file_id)
+            try:
+                bot.send_sticker(row[0],message.sticker.file_id)
+            except:
+                bot.send_message(message.chat.id, "Ваш собеседник заблокировал бота...\n Нажмите /search")
+                cursor = conn.cursor()
+                cursor.execute("DELETE FROM search WHERE user_id={}".format(row[0]))
+                cursor.execute("DELETE FROM users WHERE user_id={}".format(row[0]))
+                cursor.execute("UPDATE users SET searching=NULL, companion=NULL WHERE user_id={}".format(message.chat.id))
     conn.close()
 
 @bot.message_handler(content_types=["voice"])
@@ -337,9 +373,16 @@ def send_audio(message):
         cursor.execute('SELECT companion FROM users WHERE user_id={}'.format(message.chat.id))
         row = cursor.fetchone()
         if row[0] != None:
-            file_info = bot.get_file(message.voice.file_id)
-            file = requests.get('https://api.telegram.org/file/bot{0}/{1}'.format(constants.token, file_info.file_path))
-            bot.send_voice(row[0],file.content)
+            try:
+                file_info = bot.get_file(message.voice.file_id)
+                file = requests.get('https://api.telegram.org/file/bot{0}/{1}'.format(constants.token, file_info.file_path))
+                bot.send_voice(row[0],file.content)
+            except:
+                bot.send_message(message.chat.id, "Ваш собеседник заблокировал бота...\n Нажмите /search")
+                cursor = conn.cursor()
+                cursor.execute("DELETE FROM search WHERE user_id={}".format(row[0]))
+                cursor.execute("DELETE FROM users WHERE user_id={}".format(row[0]))
+                cursor.execute("UPDATE users SET searching=NULL, companion=NULL WHERE user_id={}".format(message.chat.id))
     conn.close()
 
 bot.polling(none_stop=True)
