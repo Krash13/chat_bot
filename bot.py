@@ -59,7 +59,7 @@ def search_message(message):
             request += " AND users.city='{}'".format(row1[5])
 
         if row1[6]!=None:
-            request += " AND search.target='{}'".format(row1[6])
+            request += " AND (search.target='{}' OR search.target IS NULL)".format(row1[6])
 
         request += " AND (search.gender='{}' OR search.gender IS NULL)".format(row2[2])
         if row1[6]!=None:
@@ -141,6 +141,7 @@ def next_message(message):
     row = cursor.fetchone()
     if row!=None:
         cursor.execute("UPDATE users SET status=4, searching=NULL WHERE user_id={}".format(message.chat.id))
+        cursor.execute("UPDATE search SET gender=NULL, age_min=NULL, age_max=NULL, city=NULL, target=NULL WHERE user_id={}".format(message.chat.id))
         bot.send_message(message.chat.id, 'Теперь разбеёмсся кого вы ищете!', reply_markup=keyboard2)
     conn.close()
 
