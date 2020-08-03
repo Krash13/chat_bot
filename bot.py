@@ -35,6 +35,28 @@ def start_message(message):
         bot.send_message(message.chat.id, 'Привет, как мне тебя называть?')
     print(message.chat)
     conn.close()
+@bot.message_handler(commands=['search_all'])
+def search_all_message(message):
+    conn = MySQLdb.connect(constants.host, constants.user, constants.passw, constants.db, charset='utf8')
+    cursor = conn.cursor()
+    cursor.execute("SELECT status FROM users WHERE user_id={}".format(message.chat.id))
+    row = cursor.fetchone()
+    if row!=None and row[0]==8:
+        bot.send_message(message.chat.id, 'Ожидайте собеседника...')
+        cursor.execute("UPDATE users SET searching=2, companion=NULL WHERE user_id={}".format(message.chat.id))
+        cursor.execute("SELECT user_id FROM users WHERE user_id<>{} AND searching=2".format(message.chat.id))
+        rows=cursor.fetchall()
+        #print(rows)
+        if len(rows):
+            index = random.randint(0, len(rows) - 1)
+            id = rows[index][0]
+            cursor.execute("UPDATE users SET searching=1, companion={} WHERE user_id={}".format(id, message.chat.id))
+            cursor.execute("UPDATE users SET searching=1, companion={} WHERE user_id={}".format(message.chat.id, id))
+            bot.send_message(message.chat.id,'Собеседник найден! \n /stop - остановить диалог')
+            bot.send_message(id, 'Собеседник найден! \n /stop - остановить диалог')
+    else:
+        bot.send_message(message.chat.id,'Ваша анкета ещё не заполнена!')
+    conn.close()
 
 @bot.message_handler(commands=['search'])
 def search_message(message):
@@ -43,10 +65,10 @@ def search_message(message):
     cursor.execute("SELECT status FROM users WHERE user_id={}".format(message.chat.id))
     row = cursor.fetchone()
     if row!=None and row[0]==8:
-        bot.send_message(message.chat.id, 'Ожидайте собеседника...')
+        bot.send_message(message.chat.id, 'Ожидайте собеседника... \nЕсли собеседник долго не находится, попробуйте команду:\n /search_all - поиск без параметром')
         request="SELECT users.user_id FROM users, search WHERE"
         cursor = conn.cursor()
-        cursor.execute("UPDATE users SET searching=0 WHERE user_id={}".format(message.chat.id))
+        cursor.execute("UPDATE users SET searching=0, companion=NULL WHERE user_id={}".format(message.chat.id))
         cursor.execute("SELECT * FROM search WHERE user_id={}".format(message.chat.id))
         row1 = cursor.fetchone()
         cursor.execute("SELECT * FROM users WHERE user_id={}".format(message.chat.id))
