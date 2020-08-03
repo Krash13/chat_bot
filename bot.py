@@ -12,6 +12,7 @@ keyboard1 = telebot.types.ReplyKeyboardMarkup(True, True)
 keyboard2 = telebot.types.ReplyKeyboardMarkup(True, True)
 keyboard3 = telebot.types.ReplyKeyboardMarkup(True, True)
 keyboard4 = telebot.types.ReplyKeyboardMarkup(True, True)
+keyboard5 = telebot.types.ReplyKeyboardMarkup(True, True)
 remkeyb=telebot.types.ReplyKeyboardRemove()
 keyboard1.row('М', 'Ж')
 keyboard2.row('М', 'Ж', "Всё равно")
@@ -19,6 +20,7 @@ keyboard3.row('16-18', '18-23','23-30').add('30-40','40-55','55+')
 keyboard3.add('Всё равно')
 keyboard4.row('Общение', 'Дружба').add('Отношения','Секс')
 keyboard4.add('Всё равно')
+keyboard5.row('Всё равно')
 
 keyboard_geo = telebot.types.ReplyKeyboardMarkup(row_width=1, resize_keyboard=True)
 button_geo = telebot.types.KeyboardButton(text="Отправить местоположение", request_location=True)
@@ -253,11 +255,11 @@ def send_text(message):
             else:
                 cursor.execute('UPDATE search SET age_min=0, age_max=99 WHERE user_id={}'.format(message.chat.id))
             cursor.execute('UPDATE users SET  status=status+1 WHERE user_id={}'.format(message.chat.id))
-            bot.send_message(message.chat.id, 'Из какого города? Если вам всё равно отправьте "."', reply_markup=remkeyb)
+            bot.send_message(message.chat.id, 'Из какого города?', reply_markup=keyboard5)
         else:
             bot.send_message(message.chat.id, 'Теперь разберёмся с возрастом', reply_markup=keyboard3)
     elif status[0] == 6:
-        if message.text!=".":
+        if message.text!="Все равно":
             cursor.execute('UPDATE search SET city="{}" WHERE user_id={}'.format(message.text, message.chat.id))
         cursor.execute('UPDATE users SET  status=status+1 WHERE user_id={}'.format(message.chat.id))
         bot.send_message(message.chat.id, 'Для чего вы тут?', reply_markup=keyboard4)
