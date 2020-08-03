@@ -24,6 +24,10 @@ keyboard_geo = telebot.types.ReplyKeyboardMarkup(row_width=1, resize_keyboard=Tr
 button_geo = telebot.types.KeyboardButton(text="Отправить местоположение", request_location=True)
 keyboard_geo.add(button_geo)
 
+@bot.message_handler(commands=['help'])
+def help_message(message):
+    bot.send_message(message.chat.id, '/start - запуск бота\n/search - поиск собеседник\n/search_all - поиск без параметров\n/next - смена собеседника\n/stop - остановить поиск\n/update_info - обновить данные о себе\n/update_target - обновить критерии поиска\n/delete_anket - удалить анкету\n/help - помощь')
+
 @bot.message_handler(commands=['start'])
 def start_message(message):
     conn = MySQLdb.connect(constants.host, constants.user, constants.passw, constants.db, charset='utf8')
