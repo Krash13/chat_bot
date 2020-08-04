@@ -50,6 +50,16 @@ def search_all_message(message):
     row = cursor.fetchone()
     if row!=None and row[0]==8:
         bot.send_message(message.chat.id, 'Ожидайте собеседника...')
+        cursor.execute("SELECT companion FROM users WHERE user_id={}".format(message.chat.id))
+        row = cursor.fetchone()
+        if row[0]!=None:
+            cursor.execute("UPDATE users SET searching=0, companion=NULL WHERE user_id={}".format(row[0]))
+            try:
+                bot.send_message(row[0], 'Собеседник разорвал связь, нажмите /search для поиска')
+            except:
+                cursor = conn.cursor()
+                cursor.execute("DELETE FROM search WHERE user_id={}".format(id))
+                cursor.execute("DELETE FROM users WHERE user_id={}".format(id))
         cursor.execute("UPDATE users SET searching=2, companion=NULL WHERE user_id={}".format(message.chat.id))
         cursor.execute("SELECT user_id FROM users WHERE user_id<>{} AND searching=2".format(message.chat.id))
         rows=cursor.fetchall()
@@ -80,6 +90,16 @@ def search_message(message):
     row = cursor.fetchone()
     if row!=None and row[0]==8:
         bot.send_message(message.chat.id, 'Ожидайте собеседника... \nЕсли собеседник долго не находится, попробуйте команду:\n /search_all - поиск без параметром')
+        cursor.execute("SELECT companion FROM users WHERE user_id={}".format(message.chat.id))
+        row = cursor.fetchone()
+        if row[0]!=None:
+            cursor.execute("UPDATE users SET searching=0, companion=NULL WHERE user_id={}".format(row[0]))
+            try:
+                bot.send_message(row[0], 'Собеседник разорвал связь, нажмите /search для поиска')
+            except:
+                cursor = conn.cursor()
+                cursor.execute("DELETE FROM search WHERE user_id={}".format(id))
+                cursor.execute("DELETE FROM users WHERE user_id={}".format(id))
         request="SELECT users.user_id FROM users, search WHERE"
         cursor = conn.cursor()
         cursor.execute("UPDATE users SET searching=0, companion=NULL WHERE user_id={}".format(message.chat.id))
