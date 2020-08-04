@@ -144,7 +144,12 @@ def next_message(message):
         id=row[0]
         cursor.execute("UPDATE users SET searching=NULL, companion=NULL WHERE user_id={}".format(message.chat.id))
         cursor.execute("UPDATE users SET searching=NULL, companion=NULL WHERE user_id={}".format(id))
-        bot.send_message(id, 'Собеседник остановил диалог... Для поиска используйте /search')
+        try:
+            bot.send_message(id, 'Собеседник остановил диалог... Для поиска используйте /search')
+        except:
+            cursor = conn.cursor()
+            cursor.execute("DELETE FROM search WHERE user_id={}".format(id))
+            cursor.execute("DELETE FROM users WHERE user_id={}".format(id))
         search_message(message)
     else:
         bot.send_message(message.chat.id, 'Нажмите /search для поиска')
@@ -162,7 +167,12 @@ def stop_message(message):
     if row!=None and row[0] != None:
         id=row[0]
         cursor.execute("UPDATE users SET searching=NULL, companion=NULL WHERE user_id={}".format(id))
-        bot.send_message(id, 'Собеседник остановил диалог... Для поиска используйте /search')
+        try:
+            bot.send_message(id, 'Собеседник остановил диалог... Для поиска используйте /search')
+        except:
+            cursor = conn.cursor()
+            cursor.execute("DELETE FROM search WHERE user_id={}".format(id))
+            cursor.execute("DELETE FROM users WHERE user_id={}".format(id))
     conn.close()
 
 @bot.message_handler(commands=['update_info'])
