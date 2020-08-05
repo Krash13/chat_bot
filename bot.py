@@ -53,7 +53,7 @@ def search_all_message(message):
         cursor.execute("SELECT companion FROM users WHERE user_id={}".format(message.chat.id))
         row = cursor.fetchone()
         if row[0]!=None:
-            cursor.execute("UPDATE users SET searching=0, companion=NULL WHERE user_id={}".format(row[0]))
+            cursor.execute("UPDATE users SET searching=NULL, companion=NULL WHERE user_id={}".format(row[0]))
             try:
                 bot.send_message(row[0], 'Собеседник разорвал связь, нажмите /search для поиска')
             except:
@@ -93,7 +93,7 @@ def search_message(message):
         cursor.execute("SELECT companion FROM users WHERE user_id={}".format(message.chat.id))
         row = cursor.fetchone()
         if row[0]!=None:
-            cursor.execute("UPDATE users SET searching=0, companion=NULL WHERE user_id={}".format(row[0]))
+            cursor.execute("UPDATE users SET searching=NULL, companion=NULL WHERE user_id={}".format(row[0]))
             try:
                 bot.send_message(row[0], 'Собеседник разорвал связь, нажмите /search для поиска')
             except:
@@ -289,7 +289,7 @@ def send_text(message):
         else:
             bot.send_message(message.chat.id, 'Теперь разберёмся с возрастом', reply_markup=keyboard3)
     elif status[0] == 6:
-        if message.text!="Все равно":
+        if not message.text in ("Все равно","Всё равно"):
             cursor.execute('UPDATE search SET city="{}" WHERE user_id={}'.format(message.text, message.chat.id))
         cursor.execute('UPDATE users SET  status=status+1 WHERE user_id={}'.format(message.chat.id))
         bot.send_message(message.chat.id, 'Для чего вы тут?', reply_markup=keyboard4)
